@@ -1,2 +1,5 @@
 *.exe
 *.obj
+target
+bin
+obj
