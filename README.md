@@ -1,3 +1,3 @@
-# Learn C++
+# Language Learning
 
-A set of tutorials and associated code for learning the basics of modern C++ (C++11 and C++14) development.
+Small projects implemented in C#, C++, and Rust to explore and learn the differences between languages.
