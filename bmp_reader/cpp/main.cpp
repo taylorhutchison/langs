@@ -9,7 +9,7 @@
 
 int main()
 {
-    std::ifstream file("image.bmp");
+    std::ifstream file("../shared_data/image1.bmp");
 
     unsigned char header[54];
     file.read(reinterpret_cast<char*>(header), 54);

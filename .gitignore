@@ -1,5 +1,7 @@
 *.exe
 *.obj
+*.out
+main
 target
 bin
 obj
