@@ -40,7 +40,7 @@ fn main() -> io::Result<()> {
 
     for (_, (rgb, count)) in rgb_vec.iter().take(10).enumerate() {
         println!(
-            "#{:02X}{:02X}{:02X}: {} times",
+            "R: {} G: {} B: {} - Count {}",
             rgb.0, rgb.1, rgb.2, count
         );
     }
