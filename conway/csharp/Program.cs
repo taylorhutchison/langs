@@ -1,35 +1,45 @@
-﻿var numColumns = 40;
-var numRows = 20;
-int[,] grid;
+﻿using System.Collections;
+using System.Collections.Concurrent;
+using System.Data;
+using System.Diagnostics;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices.Marshalling;
+using System.Transactions;
+
+int numColumns = Console.WindowWidth-1;
+int numRows = Console.WindowHeight-1;
+BitArray grid1;
+BitArray grid2;
+int generation = 0;
 var random = new Random();
 
-int[,] GenerateGrid()
+BitArray GenerateGrid()
 {
-    var grid = new int[numRows, numColumns];
+    var grid = new BitArray(numRows * numColumns);
     for (int row = 0; row < numRows; row++)
     {
         for (int column = 0; column < numColumns; column++)
         {
-            grid[row, column] = random.Next(2);
+            grid[row * numColumns + column] = random.Next(2) == 1;
         }
     }
     return grid;
 }
 
-void PrintGrid(int[,] grid)
+void PrintGrid(BitArray grid)
 {
     Console.SetCursorPosition(0, 0);
     for (int row = 0; row < numRows; row++)
     {
         for (int column = 0; column < numColumns; column++)
         {
-            Console.Write(grid[row, column] == 1 ? "X" : " ");
+            Console.Write(grid[row * numColumns + column] ? "X" : " ");
         }
         Console.WriteLine();
     }
 }
 
-int GetNumberOfNeighbors(int[,] grid, int row, int column)
+int GetNumberOfNeighbors(BitArray grid, int row, int column)
 {
     int count = 0;
     for (int i = -1; i <= 1; i++)
@@ -41,40 +51,47 @@ int GetNumberOfNeighbors(int[,] grid, int row, int column)
             if (i == 0 && j == 0) continue;
             if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numColumns)
             {
-                if (grid[newRow, newCol] == 1) count++;
+                if (grid[newRow * numColumns + newCol]) count++;
             }
         }
     }
     return count;
 }
 
-void UpdateGrid(ref int[,] grid)
+void UpdateGrid(BitArray current, BitArray next)
 {
-    int[,] newGrid = new int[numRows, numColumns];
     for (int row = 0; row < numRows; row++)
     {
         for (int column = 0; column < numColumns; column++)
         {
-            var count = GetNumberOfNeighbors(grid, row, column);
-            if (grid[row, column] == 1)
+            var count = GetNumberOfNeighbors(current, row, column);
+            int idx = row * numColumns + column;
+            if (current[idx])
             {
-                newGrid[row, column] = (count == 2 || count == 3) ? 1 : 0;
+                next[idx] = count == 2 || count == 3;
             }
             else
             {
-                newGrid[row, column] = (count == 3) ? 1 : 0;
+                next[idx] = count == 3;
             }
         }
     }
-    grid = newGrid;
 }
 
-
 Console.Clear();
-grid = GenerateGrid();
+grid1 = GenerateGrid();
+grid2 = new BitArray(numRows * numColumns);
+var current = grid1;
+var next = grid2;
 while (true)
 {
-    PrintGrid(grid);
-    UpdateGrid(ref grid);
-    Thread.Sleep(100);
+    PrintGrid(current);
+    UpdateGrid(current, next);
+
+    var temp = current;
+    current = next;
+    next = temp;
+    generation++;
+
+    Thread.Sleep(200);
 }
