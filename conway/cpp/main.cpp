@@ -3,6 +3,8 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include "console.h"
+#include "diagnostics.h"
 
 constexpr int num_columns = 40;
 constexpr int num_rows = 20;
@@ -60,31 +62,6 @@ void update_grid(const std::bitset<grid_size>& current, std::bitset<grid_size>& 
     }
 }
 
-// Platform-specific cursor positioning
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-void set_cursor_position(int x, int y) {
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos = { static_cast<SHORT>(x), static_cast<SHORT>(y) };
-    SetConsoleCursorPosition(hConsole, pos);
-}
-#elif defined(__linux__) || defined(__unix__) || defined(__APPLE__)
-#include <cstdio>
-void set_cursor_position(int x, int y) {
-    //ANSI escape code for cursor position (1-based)
-    std::printf("\033[%d;%dH", y + 1, x + 1);
-    std::fflush(stdout);
-}
-#endif
-
-void clear_console() {
-#if defined(_WIN32) || defined(_WIN64)
-    system("cls");
-#else
-    std::cout << "\033[2J\033[H";
-#endif
-}
-
 void print_grid(const std::bitset<grid_size>& grid) {
     set_cursor_position(0,0);
     for(int row = 0; row < num_rows; row++) {
@@ -106,8 +83,9 @@ int main()
     while(true) {
         print_grid(*current);
         update_grid(*current, *next);
-
+        std::cout << "Working set: " << get_working_set_size() / 1024 << " KB" << std::endl;
         std::swap(current, next);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));\
+        
     }
 }
