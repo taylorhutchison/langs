@@ -17,3 +17,6 @@ Read a BMP file and report back on the colors found. Practices reading a binary 
 
 ### prime_sieve
 Find prime numbers using the sieve approach.
+
+### Conway's game of life
+Generational life simulation in the console
