@@ -20,3 +20,18 @@ Find prime numbers using the sieve approach.
 
 ### Conway's game of life
 Generational life simulation in the console
+
+### Calendar
+Ouutput a simple monthly calendar given a month name and a year as CLI args
+
+### Stopwatch
+Simple stopwatch
+
+### Text Search
+Find text in a large document
+
+### Web Crawl
+Create a link tree given a URL
+
+### Web Server
+Simple web server for static files
