@@ -1,17 +1,27 @@
 #include <iostream>
 #include <cstdlib>
 
-int zellers_congruence(int day_of_month, int month, int year_of_century, int century) {
-    return (day_of_month + 
-        (13 * (month + 1) / 5) + 
-        year_of_century + 
-        (year_of_century / 4) +
-        (century / 4) - (2 * century)) % 7;
+struct ZellersInputs
+{
+    int day;
+    int month;
+    int year;
+    int century;
+};
+
+int zellers_congruence(ZellersInputs inputs)
+{
+    return (inputs.day +
+            (13 * (inputs.month + 1) / 5) +
+            inputs.year +
+            (inputs.year / 4) +
+            (inputs.century / 4) - (2 * inputs.century)) % 7;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-    if (argc != 3) {
+    if (argc != 3)
+    {
         std::cerr << "Usage: " << argv[0] << " <month> <year>" << std::endl;
         return 1;
     }
@@ -19,21 +29,19 @@ int main(int argc, char* argv[])
     int month = std::atoi(argv[1]);
     int year = std::atoi(argv[2]);
 
-    if (month <= 2) {
-        month += 12;
-        year -= 1;
-    }
+    ZellersInputs inputs;
 
-    int year_of_century = year % 100;
-    int century = year / 100;
+    inputs.day = 1;
+    inputs.month = (month <= 2) ? (month + 12) : month;
+    inputs.year = (month <= 2) ? (year - 1) % 100 : (year % 100);
+    inputs.century = year / 100;
 
-    int n = zellers_congruence(1, month, year_of_century, century);
+    int n = zellers_congruence(inputs);
 
-    const char* days[] = { "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
+    const char *days[] = {"Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
     std::string day_name = (n >= 0 && n <= 6) ? days[n] : "Invalid";
 
-    std::cout << "Month: " << month << ", Year: " << year << "Starts on day: " << day_name << std::endl;
+    std::cout << "Month " << month << " of year " << year << " starts on " << day_name << std::endl;
 
     return 0;
 }
-

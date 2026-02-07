@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build-windows",
+    "cmake.debugConfig": {
+        "args": ["2", "2026"]
+    }
+}
