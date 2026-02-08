@@ -1,21 +1,10 @@
 #include <iostream>
 #include <array>
 #include <string>
+#include <format>
 
-struct ZellersInputs {
-    int day;
-    int month;
-    int year;
-    int century;
-};
-
-constexpr int zellers_congruence(const ZellersInputs& inputs) {
-    return (inputs.day +
-            (13 * (inputs.month + 1) / 5) +
-            inputs.year +
-            (inputs.year / 4) +
-            (inputs.century / 4) - (2 * inputs.century)) % 7;
-}
+#include "zellers.h"
+#include "calendar.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -45,11 +34,10 @@ int main(int argc, char* argv[]) {
         year / 100
     };
 
-    int n = zellers_congruence(inputs);
+    int day = zellers_congruence(inputs);
 
-    constexpr std::array<const char*, 7> days = {"Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
-    std::string day_name = (n >= 0 && n <= 6) ? days[n] : "Invalid";
+    
+    print_month(day, month, year);
 
-    std::cout << "Month " << month << " of year " << year << " starts on " << day_name << std::endl;
     return 0;
 }
