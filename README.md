@@ -24,8 +24,8 @@ Generational life simulation in the console
 ### Calendar
 Ouutput a simple monthly calendar given a month name and a year as CLI args
 
-### Stopwatch
-Simple stopwatch
+### Scheduler
+Run events asynchronously on a schedule
 
 ### Text Search
 Find text in a large document
