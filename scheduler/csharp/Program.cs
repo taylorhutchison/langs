@@ -6,47 +6,75 @@ using System.Threading.Tasks;
 public class ScheduledTask<T>
 {
     public Guid Id { get; } = Guid.NewGuid();
-    public Func<Task<T>> TaskAction { get; }
+    public Func<Task<T?>> TaskAction { get; }
     public Action<T?>? Callback { get; }
     public TimeSpan Interval { get; }
     public DateTime NextRun { get; set; }
 
+    // For sync Action
     public ScheduledTask(Action action, TimeSpan interval)
     {
-        Id = Guid.NewGuid();
-        TaskAction = () => { action(); return default; };
+        TaskAction = () => { action(); return Task.FromResult(default(T)); };
         Interval = interval;
         NextRun = DateTime.UtcNow + interval;
     }
 
-    public ScheduledTask(Func<Task<T>> action, TimeSpan interval)
+    // For sync Func<T>
+    public ScheduledTask(Func<T?> action, TimeSpan interval)
     {
-        Id = Guid.NewGuid();
+        TaskAction = () => Task.FromResult(action());
+        Interval = interval;
+        NextRun = DateTime.UtcNow + interval;
+    }
+
+    // For async Func<Task<T>>
+    public ScheduledTask(Func<Task<T?>> action, TimeSpan interval, Action<T?>? callback = null)
+    {
         TaskAction = action;
-        Interval = interval;
-        NextRun = DateTime.UtcNow + interval;
-    }
-
-    public ScheduledTask(Func<Task<T>> action, TimeSpan interval, Action<T?>? callback)
-    {
-        Id = Guid.NewGuid();
-        TaskAction = () => _ = action();
         Interval = interval;
         NextRun = DateTime.UtcNow + interval;
         Callback = callback;
     }
 }
 
+public class TaskRun
+{
+    public Guid TaskId { get; }
+    public DateTime RunTime { get; }
+    public Exception? Exception { get; set; }
+
+    public TaskRun(Guid taskId, DateTime runTime, Exception? exception = null)
+    {
+        TaskId = taskId;
+        RunTime = runTime;
+        Exception = exception;
+    }
+}
+
 public class Scheduler<T>
 {
-    private readonly ConcurrentBag<ScheduledTask<T>> _tasks = new();
+    private readonly ConcurrentBag<ScheduledTask<T?>> _tasks = new();
     private readonly CancellationTokenSource _cts = new();
+    private readonly ConcurrentBag<TaskRun> _taskRuns = new();
+    public event Action<TaskRun>? TaskRunAdded;
 
-    public Guid AddTask(Func<Task<T>> action, TimeSpan interval, Action<T?>? callback = null)
+    public Guid AddTask(Func<T?> action, TimeSpan interval, Action<T?>? callback = null)
     {
-        var task = new ScheduledTask<T>(action, interval, callback);
+        return AddTask(() => Task.FromResult(action()), interval, callback);
+    }
+
+    public Guid AddTask(Func<Task<T?>> action, TimeSpan interval, Action<T?>? callback = null)
+    {
+        var task = new ScheduledTask<T?>(action, interval, callback);
         _tasks.Add(task);
         return task.Id;
+    }
+
+    private void LogTaskRun(Guid id, DateTime now, Exception? ex = null)
+    {
+        var run = new TaskRun(id, now, ex);
+        _taskRuns.Add(run);
+        TaskRunAdded?.Invoke(run);
     }
 
     public void Start()
@@ -60,18 +88,21 @@ public class Scheduler<T>
                 {
                     if (now >= task.NextRun)
                     {
-                        try
+                        _ = Task.Run(async () =>
                         {
-                            _ = Task.Run(() => task.TaskAction()); // fire-and-forget, suppress warning
+                            var result = await task.TaskAction();
                             if (task.Callback != null)
                             {
-                                var result = task.TaskAction();
-                                var x = await result;
-                                Console.WriteLine($"I see the result as {result}");
-                                task.Callback(x);
+                                task.Callback?.Invoke(result);
                             }
-                        }
-                        catch { /* handle exceptions as needed */ }
+                            LogTaskRun(task.Id, now);
+                        }).ContinueWith(t =>
+                        {
+                            if (t.Exception != null)
+                            {
+                                LogTaskRun(task.Id, now, t.Exception);
+                            }
+                        }, TaskContinuationOptions.OnlyOnFaulted);
                         task.NextRun = now + task.Interval;
                     }
                 }
@@ -82,12 +113,6 @@ public class Scheduler<T>
 
     public void Stop() => _cts.Cancel();
 }
-
-public static class TaskFactory
-{
-
-}
-
 // Example usage:
 class Program
 {
@@ -95,22 +120,29 @@ class Program
     {
         var scheduler = new Scheduler<int>();
 
-        var t1 = async () =>
+        scheduler.TaskRunAdded += (run) =>
+        {
+            if (run.Exception != null)
+            {
+                Console.WriteLine($"Task {run.TaskId} failed at {run.RunTime}: {run.Exception}");
+            }
+        };
+
+        var t1 = () =>
         {
             Console.WriteLine("Task 1: " + DateTime.Now);
-            await Task.Delay(1000);
             return new Random().Next(1, 100);
         };
 
-        // scheduler.AddTask(() => Console.WriteLine("Task 1: " + DateTime.Now), TimeSpan.FromSeconds(1));
-        // scheduler.AddTask(async () =>
-        // {
-        //     Console.WriteLine("Task 2: " + DateTime.Now);
-        //     await Task.Delay(2000); // Simulate a longer-running task 
-        //     Console.WriteLine("Task 2 completed: " + DateTime.Now);
-        // }, TimeSpan.FromSeconds(5));
+        var t2 = async () =>
+        {
+            Console.WriteLine("Task 2: " + DateTime.Now);
+            await Task.Delay(4000);
+            return new Random().Next(1, 100);
+        };
 
-        scheduler.AddTask(t1, TimeSpan.FromSeconds(3), (result) => Console.WriteLine($"Callback says {result}"));
+        scheduler.AddTask(t1, TimeSpan.FromSeconds(1));
+        scheduler.AddTask(t2, TimeSpan.FromSeconds(5), (result) => Console.WriteLine($"Callback says {result}"));
 
         scheduler.Start();
 
